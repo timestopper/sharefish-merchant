@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>ShareFish Merchant</title>
+  <script src="http://www.parsecdn.com/js/parse-1.2.13.min.js"></script>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAB-yl9gFlGK0lM4JjX2p2BKiuUfaaKe6E&libraries=places"></script>
+  <% if (debug === false) { %>
+  <link type="text/css" rel="stylesheet" media="all" href="/styles/app.<%= version %>.css" />
+  <% } %>
+  <style type="text/css">
+    .pac-container {
+      background-color: #FFF;
+      z-index: 22222220;
+    }
+
+    .btn-primary {
+      background-color: #FFA407 !important;
+      border-color: #FFA407 !important;
+    }
+
+    .nav > li.active {
+        border-left: 4px solid #FFA407 !important;
+        background: #02C5F6 !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="application" style="height: 100%;"></div>
+  <script src="/js/app.<%= version %>.js"></script>
+</body>
+</html>
