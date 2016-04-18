@@ -12,6 +12,7 @@ export function signUp(userData) {
   user.set("username", userData.username);
   user.set("password", userData.password);
   user.set("email", userData.username);
+  user.set("stripe_customer_id", userData.stripe_customer_id);
 
   var geocoder = new google.maps.Geocoder();
 

@@ -15,10 +15,10 @@ var server = new WebpackDevServer(
   config.devServer
 );
 
-server.listen(port, host, function (err) {
+//server.listen(port, host, function (err) {
+server.listen(3000, "0.0.0.0", function (err) {
   if (err) { console.log(err); }
   var url = util.format('http://%s:%d', host, port);
   console.log('Listening at %s', url);
   opn(url);
 });
-

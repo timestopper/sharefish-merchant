@@ -1,6 +1,7 @@
 import $ from 'jquery';
 
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link } from 'react-router';
@@ -11,6 +12,8 @@ import ValidateMixin from '../../lib/validate-mixin/mixin'
 import routePaths from '../../routes';
 
 import * as UserActions from '../../actions/user';
+
+var StripeForm = require('../stripe-form/StripeForm.js');
 
 const PageComponent = React.createClass({
   mixins: [ValidateMixin],
@@ -24,7 +27,23 @@ const PageComponent = React.createClass({
   },
 
   componentDidMount() {
-    new google.maps.places.Autocomplete(document.getElementById('address'), {});
+    let autocomplete = new google.maps.places.Autocomplete(document.getElementById('address'), {});
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          var geolocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          var circle = new google.maps.Circle({
+            center: geolocation,
+            radius: position.coords.accuracy
+          });
+          autocomplete.setBounds(circle.getBounds());
+        });
+      }
+
+      Stripe.setPublishableKey('pk_test_LoKBUgVb9ggpifDrjxPlBtrV'); // set your test public key
   },
 
   componentWillReceiveProps(nextProps) {
@@ -60,6 +79,7 @@ const PageComponent = React.createClass({
 
     validateObj[fieldName] = this.state.fields[fieldName];
     let res = this.validate('change', validateObj);
+
     this.setState({errors: res.errors});
   },
 
@@ -67,24 +87,85 @@ const PageComponent = React.createClass({
     event.preventDefault();
     let res = this.validate();
 
+
+    /* Stripe section */
+    let stripeData = {};
+
+    // grab and parse stripe data from fields
+    let inpuArray = ReactDOM.findDOMNode( this.refs['cardForm'] ).querySelectorAll('input');
+
+    for (let input of ReactDOM.findDOMNode( this.refs['cardForm'] ).querySelectorAll('input') ) {
+      stripeData[input['name']] = input['value'];
+    }
+
+    let expiryData = stripeData['CCexpiry'].split('/') 
+        , expMonth = expiryData[0].trim()
+        , expYear = expiryData[1].trim()
+        , cardNumber = stripeData['CCnumber'].replace(/\s/g, '')
+        , cardCvc = stripeData['CCcvc'].trim();
+
+    var self = this;
+
     if (Object.keys(res.errors).length !== 0) {
       this.setState({errors: res.errors});
     } else {
-      let file;
+      // validate stripe data and get a stripe card id
+      Stripe.createToken( {
+          number: cardNumber
+          , exp_month: expMonth
+          , exp_year: expYear
+          , cvc: cardCvc
+        }
+      , function (status, response) {
 
-      res.data.username = res.data.email;
+          if (response['error']) {
+            console.log('stripe error: ', response['error']);
+            alert('Stripe error: ' + response['error']['message']);
+            return;
+          }
 
-      file = this.refs.file.files[0];
-      file = new Parse.File(file.name, file);
+          // !TODO: save customer stripe id after creatin a user for the security reason
+          // request to the microservice to get customer id
+          let processPaymentUrl = 'http://'+window.location.hostname+':3500'+'/api/registercard';
 
-      res.data.file = file;
+          $.ajax({
+              url: processPaymentUrl,
+              dataType: 'json',
+              type: 'POST',
+              //crossDomain: true,
+              //crossOrigin: true,
+              data: { card_id: response.id, email: res.data.email }
+          }).done(function( result ) {
 
-      this.setState({loading: true});
-      if (!res.data.websiteAddress.length) {
-        res.data.websiteAddress = 'www.sharefishapp.com';
-      }
-      this.props.signUp(res.data)
+              if ( result['stripe_customer_id'] ) {
+
+                let file;
+
+                // save customer id to the User object
+                res.data.stripe_customer_id = result['stripe_customer_id'];
+                res.data.username = res.data.email;
+
+                file = self.refs.file.files[0];
+                file = new Parse.File(file.name, file);
+
+                res.data.file = file;
+
+                self.setState({loading: true});
+                if (!res.data.websiteAddress.length) {
+                  res.data.websiteAddress = 'www.sharefishapp.com';
+                }
+                self.props.signUp(res.data)
+
+              } else {
+                console.log('result', result['error']);
+                alert('Stripe error: ' + result['error']);
+              }
+          });
+
+      });
+      /* End stripe section */
     }
+
   },
 
   render() {
@@ -92,10 +173,10 @@ const PageComponent = React.createClass({
     let { user } = this.props;
 
     return (
-      <div className="middle-box text-center loginscreen" onSubmit={this.handleSubmit}>
+      <div className="middle-box text-center loginscreen" >
         <div>
           <img style={{maxWidth: "100%"}} src="./sharefish.png" />
-          <form className="m-t" role="form">
+          <form className="m-t" role="form" id="signup-form" onSubmit={this.handleSubmit}>
             <div className={errors.email ? 'form-group has-error' : 'form-group'}>
               <label className="error">{errors.email}</label>
               <input className="form-control" name="email"
@@ -198,15 +279,20 @@ const PageComponent = React.createClass({
                 type="text" />
             </div>
 
+            <StripeForm ref="cardForm"/>
 
             <LaddaButton buttonStyle="expand-right" className="btn btn-primary block full-width m-b"
               loading={this.state.loading}
-              type="submit">
+              type="submit"
+              >
               Sign up
             </LaddaButton>
             <p className="text-muted text-center"><small>Already have an account?</small></p>
             <Link className="btn btn-sm btn-white btn-block" to={routePaths.login.path} >Sign in</Link>
+
           </form>
+
+
         </div>
       </div>
     );

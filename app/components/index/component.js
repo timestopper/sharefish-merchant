@@ -22,8 +22,7 @@ const Days = [
   {name: 'Thursday', value: 'Thu'},
   {name: 'Friday', value: 'Fri'},
   {name: 'Saturday', value: 'Sat'}
-]
-
+];
 
 const PageComponent = React.createClass({
   mixins: [ValidateMixin],
