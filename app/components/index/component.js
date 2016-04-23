@@ -53,13 +53,59 @@ const PageComponent = React.createClass({
     this.setState({onEdit: false});
   },
 
+  handleChange(event) {
+
+  },
+
+  handleSaveHours() {
+
+    let hrNotes;
+    if (this.refs.Hours) {
+      hrNotes = [];
+      hrNotes.push( this.refs.Hours.value + '-' + this.refs.Hours2.value );
+      hrNotes.push( this.refs.Notes.value );
+
+      this.props.updateHoursAndNotes( this.props.location, hrNotes, this.state.currentDay, this.props.special );
+    }
+  },
+
   render() {
-    let { specials, inLoad } = this.props;
+    let { specials, inLoad, location } = this.props;
+
+    /* Start hours and notes logic */
+
+    let dayToIndex = {
+        Sun : 0
+        ,Mon : 1
+        ,Tue : 2
+        ,Wed : 3
+        ,Thu : 4
+        ,Fri : 5
+        ,Sat : 6
+    };
+
+    let hoursAndNotes;
+    if ( location && location.attributes['Daily'] ) {
+      hoursAndNotes = location.attributes.Daily[ dayToIndex[this.state.currentDay] ];
+    } else {
+      hoursAndNotes = ['10am-5pm', ' '];
+    }
+
+    let hoursAr;
+    if (hoursAndNotes && this.refs.Hours) {
+      hoursAr = hoursAndNotes[0].split('-');
+      this.refs.Hours.value = hoursAr[0];
+      this.refs.Hours2.value = hoursAr[1];
+      this.refs.Notes.value = hoursAndNotes[1];
+    }
+
+    /* End hours and notes logic */
+
 
     return (
       <div className="row">
         <div className="ibox-content">
-          <div className="row">
+          <div className="row specials-top-part">
             <div className="col-lg-12">
               <div className="row">
                 <div className="col-lg-12">
@@ -85,8 +131,10 @@ const PageComponent = React.createClass({
                         <thead>
                         <tr>
                             <th>Special</th>
-                            <th>Price </th>
+                            <th>Type</th>
+                            <th>Price</th>
                             <th>Category</th>
+                            <th>Everyday Special?</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -101,6 +149,7 @@ const PageComponent = React.createClass({
                               return (
                                 <tr key={special.id}>
                                   <td>{special.get('Title')}</td>
+                                  <td>{special.get('CurType')}</td>
                                   <td>{special.get('Price')}</td>
                                   <td>
                                   {
@@ -116,11 +165,12 @@ const PageComponent = React.createClass({
                                     })()
                                   }
                                   </td>
+                                  <td><input checked={special.get('Everyday')} readOnly={true} type="checkbox" /></td>
                                   <td style={{width: '20px'}}>
                                     <a onClick={this.setEdit.bind(this, special)} className="btn btn-sm btn-white btn-block">Edit</a>
                                   </td>
-                                  <td style={{width: '20px'}}>
-                                    <a onClick={this.props.deleteSpecial.bind(this, special)} className="btn btn-sm btn-white btn-block">Delete</a>
+                                  <td style={{width: '100px'}}>
+                                    <a onClick={this.props.deleteSpecial.bind(this, special, this.props.location)} className="btn btn-sm btn-white btn-block">Delete</a>
                                   </td>
                                 </tr>
                               );
@@ -135,6 +185,48 @@ const PageComponent = React.createClass({
               </div>
             </div>
           </div>
+          <div className="row specials-footer">
+
+            <div className="row input-group">
+              <div className="col-sm-2">
+                <label>Hours</label>
+              </div>
+              <div className="col-sm-3 hrs-wrap1">
+                <input onChange={this.handleChange} ref="Hours" name="Hours" type="text" className="input-sm form-control" />
+              </div>
+              <div className="col-sm-1">
+                <label>-</label>
+              </div>
+              <div className="col-sm-3">
+                <input ref="Hours2" name="Hours2" type="text" className="input-sm form-control" />
+              </div>
+            </div>
+            <div className="row input-group">
+              <label> </label>
+            </div>
+            <div className="row input-group">
+              <div className="col-sm-4">
+                <label>Notes</label>
+              </div>
+              <div className="col-sm-8">
+                <input ref="Notes" name="Notes" type="text" className="input-sm form-control" />
+              </div>
+            </div>
+            <div className="row input-group">
+              <label> </label>
+            </div>
+            <div className="row input-group">
+              <div className="col-sm-12 col-sm-offset-6" >
+                <LaddaButton buttonStyle="expand-right" className="btn btn-primary block full-width m-b"
+                  onClick={this.handleSaveHours}
+                  type="submit">
+                  Save Hours &amp; Notes
+                </LaddaButton>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </div>
     );
@@ -143,10 +235,11 @@ const PageComponent = React.createClass({
 
 
 function mapStateToProps(state) {
-  return {
-    specials: state.specials.items,
-    inLoad: state.specials.inLoad,
-  };
+    return {
+      specials: state.specials.items,
+      inLoad: state.specials.inLoad,
+      location: state.specials.location
+    };
 }
 
 

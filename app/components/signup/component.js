@@ -13,7 +13,7 @@ import routePaths from '../../routes';
 
 import * as UserActions from '../../actions/user';
 
-var StripeForm = require('../stripe-form/StripeForm.js');
+// var StripeForm = require('../stripe-form/StripeForm.js');
 
 const PageComponent = React.createClass({
   mixins: [ValidateMixin],
@@ -41,13 +41,14 @@ const PageComponent = React.createClass({
           });
           autocomplete.setBounds(circle.getBounds());
         });
-      }
+    }
 
-      Stripe.setPublishableKey('pk_test_LoKBUgVb9ggpifDrjxPlBtrV'); // set your test public key
+    //  Stripe.setPublishableKey(''); // set your test public key
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.user.authenticated()) {
+      Parse.User.logOut();
       this.context.router.replace(routePaths.index);
       $('body').removeClass('gray-bg');
     }
@@ -88,83 +89,104 @@ const PageComponent = React.createClass({
     let res = this.validate();
 
 
-    /* Stripe section */
-    let stripeData = {};
-
-    // grab and parse stripe data from fields
-    let inpuArray = ReactDOM.findDOMNode( this.refs['cardForm'] ).querySelectorAll('input');
-
-    for (let input of ReactDOM.findDOMNode( this.refs['cardForm'] ).querySelectorAll('input') ) {
-      stripeData[input['name']] = input['value'];
-    }
-
-    let expiryData = stripeData['CCexpiry'].split('/') 
-        , expMonth = expiryData[0].trim()
-        , expYear = expiryData[1].trim()
-        , cardNumber = stripeData['CCnumber'].replace(/\s/g, '')
-        , cardCvc = stripeData['CCcvc'].trim();
-
-    var self = this;
-
     if (Object.keys(res.errors).length !== 0) {
       this.setState({errors: res.errors});
     } else {
-      // validate stripe data and get a stripe card id
-      Stripe.createToken( {
-          number: cardNumber
-          , exp_month: expMonth
-          , exp_year: expYear
-          , cvc: cardCvc
-        }
-      , function (status, response) {
+      let file;
 
-          if (response['error']) {
-            console.log('stripe error: ', response['error']);
-            alert('Stripe error: ' + response['error']['message']);
-            return;
-          }
+      // save customer id to the User object
+      //res.data.stripe_customer_id = result['stripe_customer_id'];
+      res.data.username = res.data.email;
 
-          // !TODO: save customer stripe id after creatin a user for the security reason
-          // request to the microservice to get customer id
-          let processPaymentUrl = 'http://'+window.location.hostname+':3500'+'/api/registercard';
+      file = this.refs.file.files[0];
+      file = new Parse.File(file.name, file);
 
-          $.ajax({
-              url: processPaymentUrl,
-              dataType: 'json',
-              type: 'POST',
-              //crossDomain: true,
-              //crossOrigin: true,
-              data: { card_id: response.id, email: res.data.email }
-          }).done(function( result ) {
+      res.data.file = file;
 
-              if ( result['stripe_customer_id'] ) {
-
-                let file;
-
-                // save customer id to the User object
-                res.data.stripe_customer_id = result['stripe_customer_id'];
-                res.data.username = res.data.email;
-
-                file = self.refs.file.files[0];
-                file = new Parse.File(file.name, file);
-
-                res.data.file = file;
-
-                self.setState({loading: true});
-                if (!res.data.websiteAddress.length) {
-                  res.data.websiteAddress = 'www.sharefishapp.com';
-                }
-                self.props.signUp(res.data)
-
-              } else {
-                console.log('result', result['error']);
-                alert('Stripe error: ' + result['error']);
-              }
-          });
-
-      });
-      /* End stripe section */
+      this.setState({loading: true});
+      if (!res.data.websiteAddress.length) {
+        res.data.websiteAddress = 'www.sharefishapp.com';
+      }
+      this.props.signUp(res.data);
     }
+
+    /* Stripe section */
+    // let stripeData = {};
+
+    // // grab and parse stripe data from fields
+    // let inpuArray = ReactDOM.findDOMNode( this.refs['cardForm'] ).querySelectorAll('input');
+
+    // for (let input of ReactDOM.findDOMNode( this.refs['cardForm'] ).querySelectorAll('input') ) {
+    //   stripeData[input['name']] = input['value'];
+    // }
+
+    // let expiryData = stripeData['CCexpiry'].split('/') 
+    //     , expMonth = expiryData[0].trim()
+    //     , expYear = expiryData[1].trim()
+    //     , cardNumber = stripeData['CCnumber'].replace(/\s/g, '')
+    //     , cardCvc = stripeData['CCcvc'].trim();
+
+    // var self = this;
+
+    // if (Object.keys(res.errors).length !== 0) {
+    //   this.setState({errors: res.errors});
+    // } else {
+    //   // validate stripe data and get a stripe card id
+    //   Stripe.createToken( {
+    //       number: cardNumber
+    //       , exp_month: expMonth
+    //       , exp_year: expYear
+    //       , cvc: cardCvc
+    //     }
+    //   , function (status, response) {
+
+    //       if (response['error']) {
+    //         console.log('stripe error: ', response['error']);
+    //         alert('Stripe error: ' + response['error']['message']);
+    //         return;
+    //       }
+
+    //       // !TODO: save customer stripe id after creatin a user for the security reason
+    //       // request to the microservice to get customer id
+    //       let processPaymentUrl = 'http://'+window.location.hostname+':3500'+'/api/registercard';
+
+    //       $.ajax({
+    //           url: processPaymentUrl,
+    //           dataType: 'json',
+    //           type: 'POST',
+    //           //crossDomain: true,
+    //           //crossOrigin: true,
+    //           data: { card_id: response.id, email: res.data.email }
+    //       }).done(function( result ) {
+
+    //           if ( result['stripe_customer_id'] ) {
+
+    //             let file;
+
+    //             // save customer id to the User object
+    //             res.data.stripe_customer_id = result['stripe_customer_id'];
+    //             res.data.username = res.data.email;
+
+    //             file = self.refs.file.files[0];
+    //             file = new Parse.File(file.name, file);
+
+    //             res.data.file = file;
+
+    //             self.setState({loading: true});
+    //             if (!res.data.websiteAddress.length) {
+    //               res.data.websiteAddress = 'www.sharefishapp.com';
+    //             }
+    //             self.props.signUp(res.data)
+
+    //           } else {
+    //             console.log('result', result['error']);
+    //             alert('Stripe error: ' + result['error']);
+    //           }
+    //       });
+
+    //   });
+    //}
+      /* End stripe section */
 
   },
 
@@ -279,7 +301,7 @@ const PageComponent = React.createClass({
                 type="text" />
             </div>
 
-            <StripeForm ref="cardForm"/>
+            {/* <StripeForm ref="cardForm"/> */}
 
             <LaddaButton buttonStyle="expand-right" className="btn btn-primary block full-width m-b"
               loading={this.state.loading}

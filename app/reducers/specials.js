@@ -10,8 +10,9 @@ export default function currentUser(specials = {location: {}, items: []}, action
       if (!action.inSave) {
         items.unshift(action.special);
       }
-      return {items: items, inLoad: false, inSave: action.inSave}
+      return {items: items, inLoad: false, inSave: action.inSave, location: action.location}
     case UPDATE_SPECIAL:
+      specials.location = action.location;
       return specials;
     case DELETE_SPECIAL:
       let index = 0;
@@ -22,11 +23,11 @@ export default function currentUser(specials = {location: {}, items: []}, action
         index += 1
       }
       if (specials.items.length === 1) {
-        return {items: [], inLoad: false}
+        return {items: [], inLoad: false, location: action.location}
       } else {
         let newItems = specials.items.slice();
         newItems.splice(index, 1);
-        return {items: newItems, inLoad: false}
+        return {items: newItems, inLoad: false, location: action.location}
       }
     default:
       return {inLoad: false, items: specials.items}

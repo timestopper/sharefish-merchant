@@ -12,7 +12,10 @@ export function signUp(userData) {
   user.set("username", userData.username);
   user.set("password", userData.password);
   user.set("email", userData.username);
-  user.set("stripe_customer_id", userData.stripe_customer_id);
+  // the account should be approved by an administrator
+  // statuses 'yes', 'no', 'pending'
+  user.set("is_approved", "pending");
+//  user.set("stripe_customer_id", userData.stripe_customer_id);
 
   var geocoder = new google.maps.Geocoder();
 
@@ -43,6 +46,18 @@ export function signUp(userData) {
             location.set("Location", point);
             location.set("Description", userData.venueDescription);
             location.set("Website_Address", userData.websiteAddress);
+            // Hours and notes on the specials page
+            let hoursAndNotes = [
+              ['10am-5pm', ' ']
+              , ['10am-5pm', ' ']
+              , ['10am-5pm', ' ']
+              , ['10am-5pm', ' ']
+              , ['10am-5pm', ' ']
+              , ['10am-5pm', ' ']
+              , ['10am-5pm', ' ']
+            ];
+
+            location.set('Daily', hoursAndNotes);
 
             userData.file.save().then(
               function(file) {
@@ -54,6 +69,22 @@ export function signUp(userData) {
                     user.set("Location", location);
                     user.save(null, {
                       success: (user) => {
+                         // send confirmation email
+                         let userId = user['id'];
+                         let fullName = userData.firstName + ' ' + userData.lastName;
+                         let confirmEmailUrl = 'http://'+window.location.hostname+':3500'+'/api/sendemailconfirm';
+
+                         $.post( confirmEmailUrl,
+                            { user_id: userId
+                              , full_name: fullName
+                              , email: userData.email
+                              , venue_name: userData.venueName
+                              , venue_description: userData.venueDescription 
+                              , address: userData.address }
+                            , function (result) {
+
+                         }, {dataType: 'json'});
+
                         return dispatch( (() => {
                           return {
                             type: SIGNUP,
@@ -145,6 +176,21 @@ export function signIn(email, password) {
     return Parse.User.logIn(email, password,
       {
         success: (user) => {
+
+        //  console.log("user data", user );
+
+          // verify whether a user is approved
+          if ( user['attributes']['is_approved'] && user['attributes']['is_approved'] !== 'yes') {
+              Parse.User.logOut();
+              return dispatch( (() => {
+                return {
+                  type: SIGNIN,
+                  user: false
+                };
+              })())
+          }
+
+
           var query = new Parse.Query('Locations');
 
           query.include('User');
@@ -152,13 +198,38 @@ export function signIn(email, password) {
 
           query.first({
             success: function(location) {
+
+              if (!location.attributes['Daily']) {
+                // verify whether location has the 'Daily' property
+                let hoursAndNotes = [
+                  ['10am-5pm', ' ']
+                  , ['10am-5pm', ' ']
+                  , ['10am-5pm', ' ']
+                  , ['10am-5pm', ' ']
+                  , ['10am-5pm', ' ']
+                  , ['10am-5pm', ' ']
+                  , ['10am-5pm', ' ']
+                ];
+
+                location.set("Daily", hoursAndNotes );
+                location.save(null, {
+                  success: function(location) {
+                      console.log('location updated', location);
+                  },
+                  error: function(res, err) {
+                      console.log('location updating error', res, err);
+                  },
+                });
+              }
+
               user.location = location;
               return dispatch( (() => {
                 return {
                   type: SIGNIN,
                   user: user,
                 };
-              })())
+              })())                
+
             }
           })
         },

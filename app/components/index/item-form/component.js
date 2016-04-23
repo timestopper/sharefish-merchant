@@ -19,8 +19,10 @@ const ItemFormComponent = React.createClass({
       disabled: true,
       fields: {
         Title: this.validators.required,
+        CurType: this.validators.required,
         Price: {validators: this.validators.required, converter: this.converters.setFloat},
-        EmojiVar: {validators: this.validators.required, converter: this.converters.int}
+        EmojiVar: {validators: this.validators.required, converter: this.converters.int},
+        Everyday: ''
       }
     };
   },
@@ -41,7 +43,9 @@ const ItemFormComponent = React.createClass({
 
       this.refs.Title.value = "";
       this.refs.Price.value = "";
+      this.refs.CurType.value = "$";
       this.refs.EmojiVar.value = "";
+      this.refs.Everyday.checked = false;
 
       if (this.props.special) {
         this.props.special.set(res.data);
@@ -65,6 +69,14 @@ const ItemFormComponent = React.createClass({
               <input defaultValue={special.get('Title')} ref="Title" name="Title" onChange={this.handleChange} type="text" placeholder="New special" className="input-sm form-control" />
             </div>
           </td>
+
+          <td>
+            <select defaultValue={special.get('CurType')} ref="CurType" name="CurType" onChange={this.handleChange} className="input-sm form-control input-s-sm inline">
+              <option value="$">$</option>
+              <option value="%">%</option>
+            </select>
+          </td>
+
           <td>
             <div className="input-group">
               <input defaultValue={special.get('Price')} ref="Price" name="Price" onChange={this.handleChange} type="number" placeholder="Price" className="input-sm form-control" />
@@ -77,6 +89,12 @@ const ItemFormComponent = React.createClass({
               <option value="1">Wine</option>
               <option value="2">Cocktail/Liquor</option>
             </select>
+          </td>
+
+          <td>
+            <div className="input-group">
+              <input defaultChecked={special.get('Everyday')} ref="Everyday" name="Everyday" onChange={this.handleChange} type="checkbox" />
+            </div>
           </td>
 
           <td>
@@ -100,6 +118,13 @@ const ItemFormComponent = React.createClass({
             </div>
           </div>
 
+          <div className="col-sm-1">
+            <select ref="CurType" name="CurType" onChange={this.handleChange} className="chb-spec-type form-control input-s-sm inline">
+              <option value="$">$</option>
+              <option value="%">%</option>
+            </select>
+          </div>
+
           <div className="col-sm-2">
             <div className="input-group">
               <input ref="Price" name="Price" onChange={this.handleChange} type="number" placeholder="Price" className="input-sm form-control" />
@@ -112,6 +137,11 @@ const ItemFormComponent = React.createClass({
               <option value="1">Wine</option>
               <option value="2">Cocktail/Liquor</option>
             </select>
+          </div>
+
+          <div className="col-sm-1 everyday-wrp">
+            <input ref="Everyday" name="Everyday" id="Everyday" onChange={this.handleChange} type="checkbox" className="everyday-chb" />
+            <label htmlFor="Everyday">Everyday</label>
           </div>
 
           <div className="col-sm-2">
